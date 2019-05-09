@@ -378,15 +378,15 @@ Resources:
         MinimumHealthyPercent: 100
       DesiredCount: !Ref TaskCount
       LoadBalancers: 
-        - ContainerName: relay42
-          ContainerPort: 80
+        - ContainerName: relay42_app
+          ContainerPort: 8080
           TargetGroupArn: !Ref TargetGroup
 
   # AutoScaling Group
   ECSAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      VPCZoneIdentifier: !Sub ${PrivateSubnet1},${PrivateSubnet2},${PrivateSubnet3}
+      VPCZoneIdentifier: !Split [",", !Sub "${PrivateSubnet1},${PrivateSubnet2},${PrivateSubnet3}"]
       LaunchConfigurationName: !Ref ContainerInstances
       MinSize: !Ref InstanceCount
       MaxSize: !Ref InstanceCount
@@ -513,7 +513,7 @@ Resources:
       LoadBalancerAttributes:
       - Key: idle_timeout.timeout_seconds
         Value: 30
-      Subnets: !Sub ${PublicSubnet1},${PublicSubnet2},${PublicSubnet3}
+      Subnets: !Split [",", !Sub "${PublicSubnet1},${PublicSubnet2},${PublicSubnet3}"]
       SecurityGroups: 
         - !Ref LoadBalancerSecurityGroup
  
