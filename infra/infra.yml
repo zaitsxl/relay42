@@ -25,20 +25,28 @@ Parameters:
     Default: 4
   PrivateSubnet1CIDR:
     Type: String
-    Description: IP range for private subnet 1
-    Default: 10.0.1.0/24
+    Description: IP range for private subnet AZ1
+    Default: 10.0.10.0/24
   PrivateSubnet2CIDR:
     Type: String
-    Description: IP range for private subnet 2
-    Default: 10.0.2.0/24
+    Description: IP range for private subnet AZ2
+    Default: 10.0.20.0/24
   PrivateSubnet3CIDR:
     Type: String
-    Description: IP range for private subnet 3
-    Default: 10.0.3.0/24
-  PublicSubnetCIDR:
+    Description: IP range for private subnet AZ3
+    Default: 10.0.30.0/24
+  PublicSubnet1CIDR:
     Type: String
-    Description: IP range for public subnet
-    Default: 10.0.0.0/24
+    Description: IP range for public subnet AZ1
+    Default: 10.0.1.0/24
+  PublicSubnet2CIDR:
+    Type: String
+    Description: IP range for public subnet AZ2
+    Default: 10.0.2.0/24
+  PublicSubnet3CIDR:
+    Type: String
+    Description: IP range for public subnet AZ3
+    Default: 10.0.3.0/24
   VpcCIDR:
     Type: String
     Description: Overall IP range for VPC
@@ -62,7 +70,9 @@ Metadata:
           - PrivateSubnet1CIDR
           - PrivateSubnet2CIDR
           - PrivateSubnet3CIDR
-          - PublicSubnetCIDR
+          - PublicSubnet1CIDR
+          - PublicSubnet2CIDR
+          - PublicSubnet3CIDR
       - Label: 
           default: "Instance type and AMI"
         Parameters: 
@@ -104,16 +114,38 @@ Resources:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
 
-  PublicSubnet:
+  PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
-      CidrBlock: !Ref PublicSubnetCIDR
+      CidrBlock: !Ref PublicSubnet1CIDR
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: !Sub ${Title} public subnet (AZ1)
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      CidrBlock: !Ref PublicSubnet2CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${Title} public subnet (AZ2)
+
+  PublicSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 2, !GetAZs '' ]
+      CidrBlock: !Ref PublicSubnet3CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${Title} public subnet (AZ3)
 
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
@@ -126,39 +158,129 @@ Resources:
         - Key: Name
           Value: !Sub ${Title} private subnet (AZ1)
 
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${Title} private subnet (AZ2)
+
+  PrivateSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 2, !GetAZs '' ]
+      CidrBlock: !Ref PrivateSubnet3CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${Title} private subnet (AZ3)
+
   NatGateway1IP:
     Type: AWS::EC2::EIP
     DependsOn: InternetGatewayAttachment
     Properties: 
       Domain: vpc
 
+  NatGateway2IP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+
+  NatGateway3IP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+
   NatGateway1:
     Type: AWS::EC2::NatGateway
     Properties:
       AllocationId: !GetAtt NatGateway1IP.AllocationId
-      SubnetId: !Ref PublicSubnet
+      SubnetId: !Ref PublicSubnet1
 
-  PublicRouteTable:
+  NatGateway2:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGateway2IP.AllocationId
+      SubnetId: !Ref PublicSubnet2
+
+  NatGateway3:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGateway3IP.AllocationId
+      SubnetId: !Ref PublicSubnet3
+
+  PublicRouteTable1:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub ${Title} public route table
+          Value: !Sub ${Title} public route table AZ1
 
-  DefaultPublicRoute:
+  PublicRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Title} public route table AZ2
+
+  PublicRouteTable3:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Title} public route table AZ3
+
+  DefaultPublicRoute1:
     Type: AWS::EC2::Route
     DependsOn: InternetGatewayAttachment
     Properties:
-      RouteTableId: !Ref PublicRouteTable
+      RouteTableId: !Ref PublicRouteTable1
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
-  PublicSubnetRouteTableAssociation:
+  DefaultPublicRoute2:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  DefaultPublicRoute3:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable3
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTable1Association:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId: !Ref PublicRouteTable
-      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable1
+      SubnetId: !Ref PublicSubnet1
+
+  PublicSubnetRouteTable2Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable2
+      SubnetId: !Ref PublicSubnet2
+
+  PublicSubnetRouteTable3Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable3
+      SubnetId: !Ref PublicSubnet3
 
   PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
@@ -180,525 +302,564 @@ Resources:
     Properties:
       RouteTableId: !Ref PrivateRouteTable1
       SubnetId: !Ref PrivateSubnet1
-  
 
-       
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Title} private route table (AZ2)
 
-          #  # ECS Cluster
-          #  ECSCluster:
-          #    Type: AWS::ECS::Cluster
-          #    Properties:
-          #      ClusterName: !Ref ClusterName
-          #  # Task Definitions
-          #  TaskDefinition:
-          #    Type: AWS::ECS::TaskDefinition
-          #    Properties:
-          #      Family: relay42
-          #      TaskRoleArn: !GetAtt TaskRole.Arn
-          #      ContainerDefinitions:
-          #        - Name: relay42_app
-          #          Essential: true
-          #          Image: 821550613207.dkr.ecr.eu-west-1.amazonaws.com/relay42:1.0.0
-          #          MemoryReservation: 32
-          #          PortMappings:
-          #            - ContainerPort: 8080
-          #                        
-          #  # Service
-          #  Service: 
-          #    Type: AWS::ECS::Service
-          #    DependsOn:
-          #      - ListenerRule
-          #    Properties: 
-          #      Cluster: !Ref ECSCluster
-          #      Role: !Ref ECSServiceRole
-          #      TaskDefinition: !Ref TaskDefinition
-          #      DeploymentConfiguration:
-          #        MaximumPercent: 150
-          #        MinimumHealthyPercent: 100
-          #      DesiredCount: !Ref TaskCount
-          #      LoadBalancers: 
-          #        - ContainerName: relay42
-          #          ContainerPort: 80
-          #          TargetGroupArn: !Ref TargetGroup
-          #
-          #  # AutoScaling Group
-          #  ECSAutoScalingGroup:
-          #    Type: AWS::AutoScaling::AutoScalingGroup
-          #    Properties:
-          #      VPCZoneIdentifier: !Ref PrivateSubnets
-          #      LaunchConfigurationName: !Ref ContainerInstances
-          #      MinSize: !Ref InstanceCount
-          #      MaxSize: !Ref InstanceCount
-          #      DesiredCapacity: !Ref InstanceCount
-          #      LifecycleHookSpecificationList:
-          #        - LifecycleTransition: 'autoscaling:EC2_INSTANCE_TERMINATING'
-          #          LifecycleHookName: 'instanceTerminating'
-          #          HeartbeatTimeout: 1800
-          #          NotificationTargetARN: !Ref LifecycleSns
-          #          RoleARN: !GetAtt AutoScalingNotificationRole.Arn
-          #          DefaultResult: CONTINUE
-          #      Tags:
-          #        - Key: Name
-          #          Value: relay42-cluster-node
-          #          PropagateAtLaunch: true
-          #        - Key: ECSClusterName
-          #          Value: !Ref ECSCluster
-          #          PropagateAtLaunch: true
-          #    CreationPolicy:
-          #      ResourceSignal:
-          #        Timeout: PT15M
-          #    UpdatePolicy:
-          #      AutoScalingRollingUpdate:
-          #        MinInstancesInService: 1
-          #        MaxBatchSize: 1
-          #        PauseTime: PT5M
-          #        WaitOnResourceSignals: true
-          #
-          #  LifecycleSns:
-          #    Type: "AWS::SNS::Topic"
-          #    Properties:
-          #      Subscription:
-          #        - Protocol: lambda
-          #          Endpoint: !GetAtt Lambda.Arn
-          #
-          #  # Launch Configuration
-          #  ContainerInstances:
-          #    Type: AWS::AutoScaling::LaunchConfiguration
-          #    Properties:
-          #      ImageId: !Ref AMI
-          #      SecurityGroups:
-          #        - !Ref InstancesSecurityGroup
-          #      InstanceType: !Ref InstanceType
-          #      IamInstanceProfile: !Ref EC2InstanceProfile
-          #      UserData:
-          #        Fn::Base64: !Sub |
-          #          #!/bin/bash -xe
-          #          echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
-          #          echo ECS_ENABLE_TASK_IAM_ROLE=true >> /etc/ecs/ecs.config
-          #          yum install -y aws-cfn-bootstrap
-          #          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
-          #
-          #  # EC2 Instance Profile
-          #  EC2InstanceProfile:
-          #    Type: AWS::IAM::InstanceProfile
-          #    Properties:
-          #      Path: /
-          #      Roles: 
-          #        - !Ref EC2Role
-          #
-          #  # Task Role
-          #  TaskRole:
-          #    Type: AWS::IAM::Role
-          #    Properties: 
-          #      Path: /
-          #      AssumeRolePolicyDocument: |
-          #        {
-          #          "Statement": [{
-          #            "Action": "sts:AssumeRole",
-          #            "Effect": "Allow",
-          #            "Principal": { "Service": "ecs-tasks.amazonaws.com" }
-          #          }]
-          #        }
-          #
-          #  # ECS Service Role
-          #  ECSServiceRole:
-          #    Type: AWS::IAM::Role
-          #    Properties:
-          #      AssumeRolePolicyDocument:
-          #        Statement:
-          #        - Effect: Allow
-          #          Principal:
-          #            Service: [ecs.amazonaws.com]
-          #          Action: ['sts:AssumeRole']
-          #      Path: /
-          #      Policies:
-          #        - PolicyName: ecs-service
-          #          PolicyDocument:
-          #            Statement:
-          #            - Effect: Allow
-          #              Action: ['elasticloadbalancing:DeregisterInstancesFromLoadBalancer', 'elasticloadbalancing:DeregisterTargets',
-          #                'elasticloadbalancing:Describe*', 'elasticloadbalancing:RegisterInstancesWithLoadBalancer',
-          #                'elasticloadbalancing:RegisterTargets', 'ec2:Describe*', 'ec2:AuthorizeSecurityGroupIngress']
-          #              Resource: '*'
-          #
-          #  # EC2 Role
-          #  EC2Role:
-          #    Type: AWS::IAM::Role
-          #    Properties:
-          #      AssumeRolePolicyDocument:
-          #        Statement:
-          #        - Effect: Allow
-          #          Principal:
-          #            Service:
-          #              - ec2.amazonaws.com
-          #          Action: 
-          #            - sts:AssumeRole
-          #      Path: /
-          #      Policies:
-          #      - PolicyName: ecs-service
-          #        PolicyDocument:
-          #          Statement:
-          #          - Effect: Allow
-          #            Action: ['ecs:CreateCluster', 'ecs:DeregisterContainerInstance', 'ecs:DiscoverPollEndpoint',
-          #              'ecs:Poll', 'ecs:RegisterContainerInstance', 'ecs:StartTelemetrySession',
-          #              'ecs:Submit*', 'logs:CreateLogStream', 'logs:PutLogEvents']
-          #            Resource: '*'
-          #
-          #  # Load Balancer
-          #  LoadBalancer:
-          #    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-          #    Properties:
-          #      Scheme: internet-facing
-          #      LoadBalancerAttributes:
-          #      - Key: idle_timeout.timeout_seconds
-          #        Value: 30
-          #      Subnets: !Ref PublicSubnets
-          #      SecurityGroups: 
-          #        - !Ref LoadBalancerSecurityGroup
-          #
-          #  # TargetGroups
-          #  TargetGroup:
-          #    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-          #    DependsOn: LoadBalancer
-          #    Properties:
-          #      VpcId: !Ref VpcId
-          #      Port: 80
-          #      Protocol: HTTP
-          #      Matcher: 
-          #        HttpCode: 200-299
-          #      HealthCheckIntervalSeconds: 5
-          #      HealthCheckPath: /
-          #      HealthCheckProtocol: HTTP
-          #      HealthCheckTimeoutSeconds: 2
-          #      HealthyThresholdCount: 2
-          #      TargetGroupAttributes:
-          #        - Key: deregistration_delay.timeout_seconds
-          #          Value: 10
-          #      Tags: 
-          #        - Key: Name
-          #          Value: ecs-draining-example      
-          #
-          #  # Listeners
-          #  ALBListener80:
-          #    Type: AWS::ElasticLoadBalancingV2::Listener
-          #    DependsOn: ECSServiceRole
-          #    Properties:
-          #      DefaultActions:
-          #      - Type: forward
-          #        TargetGroupArn: !Ref TargetGroup
-          #      LoadBalancerArn: !Ref LoadBalancer
-          #      Port: '80'
-          #      Protocol: HTTP
-          #
-          #  # ELB Rule
-          #  ListenerRule:
-          #    Type: AWS::ElasticLoadBalancingV2::ListenerRule
-          #    Properties:
-          #      ListenerArn: !Ref ALBListener80
-          #      Priority: 1
-          #      Conditions:
-          #        - Field: path-pattern
-          #          Values: 
-          #            - "*"
-          #      Actions:
-          #        - TargetGroupArn: !Ref TargetGroup
-          #          Type: forward
-          #
-          #  # Security Groups
-          #  InstancesSecurityGroup:
-          #    Type: AWS::EC2::SecurityGroup
-          #    Properties:
-          #      GroupDescription: Container Instances SG
-          #      VpcId: !Ref 'VpcId'
-          #  LoadBalancerSecurityGroup:
-          #    Type: AWS::EC2::SecurityGroup
-          #    Properties:
-          #      GroupDescription: Load Balancer SG
-          #      VpcId: !Ref 'VpcId'
-          #  LoadBalancerSecurityGroupHTTPinbound:
-          #    Type: AWS::EC2::SecurityGroupIngress
-          #    Properties:
-          #      GroupId: !Ref LoadBalancerSecurityGroup
-          #      IpProtocol: tcp
-          #      FromPort: '8080'
-          #      ToPort: '8080'
-          #      CidrIp: 0.0.0.0/0
-          #  LoadBalancerSecurityGroupPorts:
-          #    Type: AWS::EC2::SecurityGroupIngress
-          #    Properties:
-          #      GroupId: !Ref InstancesSecurityGroup
-          #      IpProtocol: tcp
-          #      FromPort: '31000'
-          #      ToPort: '61000'
-          #      SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
-          #
-          #  DrainLambda:
-          #    Type: "AWS::Lambda::Function"
-          #    Properties:
-          #      Handler: index.handler
-          #      Role: !GetAtt DrainLambdaRole.Arn
-          #      Code: 
-          #        ZipFile: |
-          #          'use strict';
-          #
-          #          const AWS = require('aws-sdk');
-          #          const ec2 = new AWS.EC2();
-          #          const ecs = new AWS.ECS();
-          #
-          #          exports.handler = function(event, context, callback) {
-          #            console.log(event);
-          #            const message = JSON.parse(event.Records[0].Sns.Message);
-          #            const instanceId = message.EC2InstanceId;
-          #            const ec2Params = {
-          #              InstanceIds: [ instanceId ]
-          #            };
-          #            // Describe instance to get tags (to get cluster name)
-          #            ec2.describeInstances(ec2Params, function(err, data) {
-          #              if (err) {
-          #                console.log('error describing instances', err);
-          #              } else {
-          #                // read the cluster name from instance tags
-          #                const clusterTag = data.Reservations[0].Instances[0].Tags.find(function (tag) {
-          #                  return tag.Key == 'ECSClusterName';
-          #                });
-          #                if (!clusterTag) {
-          #                  console.log("error: this instance doesn't have an ECSClusterName tag, can't continue");
-          #                } else {
-          #                  const clusterName = clusterTag.Value;
-          #                  let ecsParams = {
-          #                    cluster: clusterName
-          #                  };
-          #                  // get this instance's ECS identifier (list + describe + find)
-          #                  ecs.listContainerInstances(ecsParams, function(err, data) {
-          #                    if (err) {
-          #                      console.log('error listing container instances', err);
-          #                    } else {
-          #                      ecsParams.containerInstances = data.containerInstanceArns;
-          #                      ecs.describeContainerInstances(ecsParams, function(err, data) {
-          #                        if (err) {
-          #                          console.log('error describing container instances', err);
-          #                        } else {
-          #                          const containerInstance = data.containerInstances.find(function(_containerInstance) {
-          #                            return _containerInstance.ec2InstanceId == instanceId;
-          #                          });
-          #                          if (!containerInstance) {
-          #                            console.log("error: can't find a container instance with id", instanceId);
-          #                          } else {
-          #                            // Finally mark the instance as DRAINING
-          #                            const containerInstanceArn = containerInstance.containerInstanceArn;
-          #                            const containerInstanceParams = {
-          #                              containerInstances: [ containerInstanceArn ],
-          #                              status: 'DRAINING',
-          #                              cluster: clusterName
-          #                            };
-          #                            console.log(containerInstanceParams);
-          #                            ecs.updateContainerInstancesState(containerInstanceParams, function (err, data) {
-          #                              if (err) {
-          #                                console.log('error updating container instance state', err);
-          #                              } else {
-          #                                console.log(`successfully set container instance ${containerInstanceArn} state to DRAINING`);
-          #                              }
-          #                            });
-          #                          }
-          #                        }
-          #                      });
-          #                    }
-          #                  });
-          #                }
-          #              }
-          #            });
-          #          };
-          #      Runtime: nodejs6.10
-          #      Timeout: 10
-          #
-          #  DrainLambdaRole:
-          #    Type: AWS::IAM::Role
-          #    Properties:
-          #      AssumeRolePolicyDocument:
-          #        Statement:
-          #        - Effect: Allow
-          #          Principal:
-          #            Service: [lambda.amazonaws.com]
-          #          Action: ['sts:AssumeRole']
-          #      Path: /
-          #      Policies:
-          #        - PolicyName: ecs-draining
-          #          PolicyDocument:
-          #            Statement:
-          #            - Effect: Allow
-          #              Action:
-          #                - ec2:DescribeInstances
-          #                - ecs:ListContainerInstances
-          #                - ecs:DescribeContainerInstances
-          #                - ecs:UpdateContainerInstancesState
-          #                - autoscaling:CompleteLifecycleAction
-          #              Resource: '*'
-          #      ManagedPolicyArns:
-          #        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-          #
-          #  DrainLambdaInvokePermission:
-          #    Type: AWS::Lambda::Permission
-          #    Properties:
-          #      FunctionName: !Ref DrainLambda
-          #      Action: lambda:InvokeFunction
-          #      Principal: sns.amazonaws.com
-          #      SourceArn: !Ref LifecycleSns
-          #
-          #  DrainLambdaLogGroup:
-          #    Type: AWS::Logs::LogGroup
-          #    Properties: 
-          #      LogGroupName: !Sub /aws/lambda/${DrainingLambda}
-          #      RetentionInDays: 30
-          #
-          #  LifecycleLambda:
-          #    Type: "AWS::Lambda::Function"
-          #    Properties:
-          #      Handler: index.handler
-          #      Role: !GetAtt LifecycleLambdaRole.Arn
-          #      Code: 
-          #        ZipFile: |
-          #          'use strict';
-          #
-          #          const AWS = require('aws-sdk');
-          #          const ecs = new AWS.ECS();
-          #          const ec2 = new AWS.EC2();
-          #          const autoscaling = new AWS.AutoScaling();
-          #
-          #          exports.handler = function(event, context, callback) {
-          #            console.log(JSON.stringify(event));
-          #            const desiredStatus = event.detail.desiredStatus;
-          #            if (desiredStatus != 'STOPPED') {
-          #              console.log(`Desired status ${desiredStatus} is not STOPPED, ignoring.`);
-          #            } else {
-          #              console.log('Desired status is STOPPED. Proceeding with check.');
-          #              const clusterArn = event.detail.clusterArn;
-          #              const containerInstanceArn = event.detail.containerInstanceArn;
-          #              const containerInstanceParams = {
-          #                cluster: clusterArn,
-          #                containerInstances: [ containerInstanceArn ]
-          #              };
-          #              ecs.describeContainerInstances(containerInstanceParams, function(err, data) {
-          #                if (err) {
-          #                  console.log('error describing container instance', err);
-          #                } else {
-          #                  const containerInstanceStatus = data.containerInstances[0].status;
-          #                  if (containerInstanceStatus != 'DRAINING') {
-          #                    console.log(`Container instance ${containerInstanceArn} is not draining, ignoring.`)
-          #                  } else {
-          #                    const runningTasksCount = data.containerInstances[0].runningTasksCount;
-          #                    if (runningTasksCount > 0) {
-          #                      console.log(`Container instance ${containerInstanceArn} is still running tasks, ignoring.`);
-          #                    } else {
-          #                      console.log(`OK to complete lifecycle hook for instance ${containerInstanceArn} as no tasks are running.`);
-          #                      const ec2InstanceId = data.containerInstances[0].ec2InstanceId;
-          #                      const ec2Params = {
-          #                        InstanceIds: [ ec2InstanceId ]
-          #                      };
-          #                      ec2.describeInstances(ec2Params, function(err, data) {
-          #                        if (err) {
-          #                          console.log('error describing ec2 instance', err);
-          #                        } else {
-          #                          const tags = data.Reservations[0].Instances[0].Tags;
-          #                          const autoScalingGroupName = tags.find(function (tag) {
-          #                            return tag.Key == 'aws:autoscaling:groupName';
-          #                          }).Value;
-          #                          const lifecycleParams = {
-          #                            AutoScalingGroupName: autoScalingGroupName,
-          #                            LifecycleActionResult: 'CONTINUE',
-          #                            LifecycleHookName: 'instanceTerminating',
-          #                            InstanceId: ec2InstanceId
-          #                          };
-          #                          autoscaling.completeLifecycleAction(lifecycleParams, function(err, data) {
-          #                            if (err) {
-          #                              console.log('error completing lifecycle action', err);
-          #                            } else {
-          #                              console.log(`Successfully completed lifecycle action for instance ${ec2InstanceId}`);
-          #                            }
-          #                          });
-          #                        }
-          #                      });
-          #                    }
-          #                  }
-          #                }
-          #              });
-          #            }
-          #          };
-          #      Runtime: nodejs6.10
-          #      Timeout: 10
-          #
-          #  LifecycleLambdaRole:
-          #    Type: AWS::IAM::Role
-          #    Properties:
-          #      AssumeRolePolicyDocument:
-          #        Statement:
-          #        - Effect: Allow
-          #          Principal:
-          #            Service: [lambda.amazonaws.com]
-          #          Action: ['sts:AssumeRole']
-          #      Path: /
-          #      Policies:
-          #        - PolicyName: ecs-draining
-          #          PolicyDocument:
-          #            Statement:
-          #            - Effect: Allow
-          #              Action:
-          #                - autoscaling:CompleteLifecycleAction
-          #                - ecs:DescribeContainerInstances
-          #                - ec2:DescribeInstances
-          #              Resource: '*'
-          #      ManagedPolicyArns:
-          #        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-          #
-          #  LifecycleLambdaInvokePermission:
-          #    Type: AWS::Lambda::Permission
-          #    Properties:
-          #      FunctionName: !Ref LifecycleLambda
-          #      Action: lambda:InvokeFunction
-          #      Principal: events.amazonaws.com
-          #      SourceArn: !GetAtt TaskStateChangeRule.Arn
-          #
-          #  LifecycleLambdaLogGroup:
-          #    Type: AWS::Logs::LogGroup
-          #    Properties: 
-          #      LogGroupName: !Sub /aws/lambda/${LifecycleLambda}
-          #      RetentionInDays: 30
-          #
-          #  TaskStateChangeRule:
-          #    Type: "AWS::Events::Rule"
-          #    Properties: 
-          #      Description: !Sub Task state change in cluster ${ECSCluster}
-          #      Name: !Sub rule-for-${ECSCluster}-state-change
-          #      EventPattern:
-          #        source: 
-          #          - aws.ecs
-          #        detail-type: 
-          #          - ECS Task State Change
-          #        detail: 
-          #          clusterArn:
-          #            - !GetAtt ECSCluster.Arn
-          #          desiredStatus:
-          #            - STOPPED
-          #      State: ENABLED
-          #      Targets:
-          #        - Arn: !GetAtt LifecycleLambda.Arn
-          #          Id: lambdaTarget
-          #
-          #  AutoScalingNotificationRole:
-          #    Type: AWS::IAM::Role
-          #    Properties:
-          #      AssumeRolePolicyDocument:
-          #        Statement:
-          #        - Effect: Allow
-          #          Principal:
-          #            Service: [autoscaling.amazonaws.com]
-          #          Action: ['sts:AssumeRole']
-          #      ManagedPolicyArns:
-          #        - arn:aws:iam::aws:policy/service-role/AutoScalingNotificationAccessRole
-          #
-          ##----------------------------------------------------------------------------------------
-          ##---------------------------------OUTPUTS------------------------------------------------
-          ##----------------------------------------------------------------------------------------
-          #Outputs:
-          #  ServiceName:
-          #    Description: ECS Service Name
-          #    Value: !GetAtt Service.Name
+  DefaultPrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway2
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      SubnetId: !Ref PrivateSubnet2
+
+  PrivateRouteTable3:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Title} private route table (AZ3)
+
+  DefaultPrivateRoute3:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable3
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway3
+
+  PrivateSubnet3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable3
+      SubnetId: !Ref PrivateSubnet3
+
+  # ECS Cluster
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref ClusterName
+  # Task Definitions
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: relay42
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ContainerDefinitions:
+        - Name: relay42_app
+          Essential: true
+          Image: 821550613207.dkr.ecr.eu-west-1.amazonaws.com/relay42:1.0.0
+          MemoryReservation: 32
+          PortMappings:
+            - ContainerPort: 8080
+                        
+  # Service
+  Service: 
+    Type: AWS::ECS::Service
+    DependsOn:
+      - ListenerRule
+    Properties: 
+      Cluster: !Ref ECSCluster
+      Role: !Ref ECSServiceRole
+      TaskDefinition: !Ref TaskDefinition
+      DeploymentConfiguration:
+        MaximumPercent: 150
+        MinimumHealthyPercent: 100
+      DesiredCount: !Ref TaskCount
+      LoadBalancers: 
+        - ContainerName: relay42
+          ContainerPort: 80
+          TargetGroupArn: !Ref TargetGroup
+
+  # AutoScaling Group
+  ECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Sub ${PrivateSubnet1},${PrivateSubnet2},${PrivateSubnet3}
+      LaunchConfigurationName: !Ref ContainerInstances
+      MinSize: !Ref InstanceCount
+      MaxSize: !Ref InstanceCount
+      DesiredCapacity: !Ref InstanceCount
+      LifecycleHookSpecificationList:
+        - LifecycleTransition: 'autoscaling:EC2_INSTANCE_TERMINATING'
+          LifecycleHookName: 'instanceTerminating'
+          HeartbeatTimeout: 1800
+          NotificationTargetARN: !Ref LifecycleSns
+          RoleARN: !GetAtt AutoScalingNotificationRole.Arn
+          DefaultResult: CONTINUE
+      Tags:
+        - Key: Name
+          Value: relay42-cluster-node
+          PropagateAtLaunch: true
+        - Key: ECSClusterName
+          Value: !Ref ECSCluster
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        PauseTime: PT5M
+        WaitOnResourceSignals: true
+
+  LifecycleSns:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      Subscription:
+        - Protocol: lambda
+          Endpoint: !GetAtt DrainLambda.Arn
+ 
+  # Launch Configuration
+  ContainerInstances:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !Ref AMI
+      SecurityGroups:
+        - !Ref InstancesSecurityGroup
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
+          echo ECS_ENABLE_TASK_IAM_ROLE=true >> /etc/ecs/ecs.config
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
+ 
+  # EC2 Instance Profile
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles: 
+        - !Ref EC2Role
+ 
+  # Task Role
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      Path: /
+      AssumeRolePolicyDocument: |
+        {
+          "Statement": [{
+            "Action": "sts:AssumeRole",
+            "Effect": "Allow",
+            "Principal": { "Service": "ecs-tasks.amazonaws.com" }
+          }]
+        }
+ 
+  # ECS Service Role
+  ECSServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ecs.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: ecs-service
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action: ['elasticloadbalancing:DeregisterInstancesFromLoadBalancer', 'elasticloadbalancing:DeregisterTargets',
+                'elasticloadbalancing:Describe*', 'elasticloadbalancing:RegisterInstancesWithLoadBalancer',
+                'elasticloadbalancing:RegisterTargets', 'ec2:Describe*', 'ec2:AuthorizeSecurityGroupIngress']
+              Resource: '*'
+ 
+  # EC2 Role
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+              - ec2.amazonaws.com
+          Action: 
+            - sts:AssumeRole
+      Path: /
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['ecs:CreateCluster', 'ecs:DeregisterContainerInstance', 'ecs:DiscoverPollEndpoint',
+              'ecs:Poll', 'ecs:RegisterContainerInstance', 'ecs:StartTelemetrySession',
+              'ecs:Submit*', 'logs:CreateLogStream', 'logs:PutLogEvents']
+            Resource: '*'
+ 
+  # Load Balancer
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      LoadBalancerAttributes:
+      - Key: idle_timeout.timeout_seconds
+        Value: 30
+      Subnets: !Sub ${PublicSubnet1},${PublicSubnet2},${PublicSubnet3}
+      SecurityGroups: 
+        - !Ref LoadBalancerSecurityGroup
+ 
+  # TargetGroups
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: LoadBalancer
+    Properties:
+      VpcId: !Ref VPC
+      Port: 8800
+      Protocol: HTTP
+      Matcher: 
+        HttpCode: 200-299
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      HealthyThresholdCount: 2
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 10
+      Tags: 
+        - Key: Name
+          Value: ecs-draining-example      
+ 
+  # Listeners
+  ALBListener8080:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: ECSServiceRole
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: '8080'
+      Protocol: HTTP
+ 
+  # ELB Rule
+  ListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ALBListener8080
+      Priority: 1
+      Conditions:
+        - Field: path-pattern
+          Values: 
+            - "*"
+      Actions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+ 
+  # Security Groups
+  InstancesSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Container Instances SG
+      VpcId: !Ref VPC
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Load Balancer SG
+      VpcId: !Ref VPC
+  LoadBalancerSecurityGroupHTTPinbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref LoadBalancerSecurityGroup
+      IpProtocol: tcp
+      FromPort: '8080'
+      ToPort: '8080'
+      CidrIp: 0.0.0.0/0
+  LoadBalancerSecurityGroupPorts:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref InstancesSecurityGroup
+      IpProtocol: tcp
+      FromPort: '31000'
+      ToPort: '61000'
+      SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+ 
+  DrainLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt DrainLambdaRole.Arn
+      Code: 
+        ZipFile: |
+          'use strict';
+ 
+          const AWS = require('aws-sdk');
+          const ec2 = new AWS.EC2();
+          const ecs = new AWS.ECS();
+ 
+          exports.handler = function(event, context, callback) {
+            console.log(event);
+            const message = JSON.parse(event.Records[0].Sns.Message);
+            const instanceId = message.EC2InstanceId;
+            const ec2Params = {
+              InstanceIds: [ instanceId ]
+            };
+            // Describe instance to get tags (to get cluster name)
+            ec2.describeInstances(ec2Params, function(err, data) {
+              if (err) {
+                console.log('error describing instances', err);
+              } else {
+                // read the cluster name from instance tags
+                const clusterTag = data.Reservations[0].Instances[0].Tags.find(function (tag) {
+                  return tag.Key == 'ECSClusterName';
+                });
+                if (!clusterTag) {
+                  console.log("error: this instance doesn't have an ECSClusterName tag, can't continue");
+                } else {
+                  const clusterName = clusterTag.Value;
+                  let ecsParams = {
+                    cluster: clusterName
+                  };
+                  // get this instance's ECS identifier (list + describe + find)
+                  ecs.listContainerInstances(ecsParams, function(err, data) {
+                    if (err) {
+                      console.log('error listing container instances', err);
+                    } else {
+                      ecsParams.containerInstances = data.containerInstanceArns;
+                      ecs.describeContainerInstances(ecsParams, function(err, data) {
+                        if (err) {
+                          console.log('error describing container instances', err);
+                        } else {
+                          const containerInstance = data.containerInstances.find(function(_containerInstance) {
+                            return _containerInstance.ec2InstanceId == instanceId;
+                          });
+                          if (!containerInstance) {
+                            console.log("error: can't find a container instance with id", instanceId);
+                          } else {
+                            // Finally mark the instance as DRAINING
+                            const containerInstanceArn = containerInstance.containerInstanceArn;
+                            const containerInstanceParams = {
+                              containerInstances: [ containerInstanceArn ],
+                              status: 'DRAINING',
+                              cluster: clusterName
+                            };
+                            console.log(containerInstanceParams);
+                            ecs.updateContainerInstancesState(containerInstanceParams, function (err, data) {
+                              if (err) {
+                                console.log('error updating container instance state', err);
+                              } else {
+                                console.log(`successfully set container instance ${containerInstanceArn} state to DRAINING`);
+                              }
+                            });
+                          }
+                        }
+                      });
+                    }
+                  });
+                }
+              }
+            });
+          };
+      Runtime: nodejs6.10
+      Timeout: 10
+ 
+  DrainLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [lambda.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: ecs-draining
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+                - ec2:DescribeInstances
+                - ecs:ListContainerInstances
+                - ecs:DescribeContainerInstances
+                - ecs:UpdateContainerInstancesState
+                - autoscaling:CompleteLifecycleAction
+              Resource: '*'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+ 
+  DrainLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref DrainLambda
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref LifecycleSns
+ 
+  DrainLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub /aws/lambda/${DrainLambda}
+      RetentionInDays: 30
+ 
+  LifecycleLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt LifecycleLambdaRole.Arn
+      Code: 
+        ZipFile: |
+          'use strict';
+ 
+          const AWS = require('aws-sdk');
+          const ecs = new AWS.ECS();
+          const ec2 = new AWS.EC2();
+          const autoscaling = new AWS.AutoScaling();
+ 
+          exports.handler = function(event, context, callback) {
+            console.log(JSON.stringify(event));
+            const desiredStatus = event.detail.desiredStatus;
+            if (desiredStatus != 'STOPPED') {
+              console.log(`Desired status ${desiredStatus} is not STOPPED, ignoring.`);
+            } else {
+              console.log('Desired status is STOPPED. Proceeding with check.');
+              const clusterArn = event.detail.clusterArn;
+              const containerInstanceArn = event.detail.containerInstanceArn;
+              const containerInstanceParams = {
+                cluster: clusterArn,
+                containerInstances: [ containerInstanceArn ]
+              };
+              ecs.describeContainerInstances(containerInstanceParams, function(err, data) {
+                if (err) {
+                  console.log('error describing container instance', err);
+                } else {
+                  const containerInstanceStatus = data.containerInstances[0].status;
+                  if (containerInstanceStatus != 'DRAINING') {
+                    console.log(`Container instance ${containerInstanceArn} is not draining, ignoring.`)
+                  } else {
+                    const runningTasksCount = data.containerInstances[0].runningTasksCount;
+                    if (runningTasksCount > 0) {
+                      console.log(`Container instance ${containerInstanceArn} is still running tasks, ignoring.`);
+                    } else {
+                      console.log(`OK to complete lifecycle hook for instance ${containerInstanceArn} as no tasks are running.`);
+                      const ec2InstanceId = data.containerInstances[0].ec2InstanceId;
+                      const ec2Params = {
+                        InstanceIds: [ ec2InstanceId ]
+                      };
+                      ec2.describeInstances(ec2Params, function(err, data) {
+                        if (err) {
+                          console.log('error describing ec2 instance', err);
+                        } else {
+                          const tags = data.Reservations[0].Instances[0].Tags;
+                          const autoScalingGroupName = tags.find(function (tag) {
+                            return tag.Key == 'aws:autoscaling:groupName';
+                          }).Value;
+                          const lifecycleParams = {
+                            AutoScalingGroupName: autoScalingGroupName,
+                            LifecycleActionResult: 'CONTINUE',
+                            LifecycleHookName: 'instanceTerminating',
+                            InstanceId: ec2InstanceId
+                          };
+                          autoscaling.completeLifecycleAction(lifecycleParams, function(err, data) {
+                            if (err) {
+                              console.log('error completing lifecycle action', err);
+                            } else {
+                              console.log(`Successfully completed lifecycle action for instance ${ec2InstanceId}`);
+                            }
+                          });
+                        }
+                      });
+                    }
+                  }
+                }
+              });
+            }
+          };
+      Runtime: nodejs6.10
+      Timeout: 10
+ 
+  LifecycleLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [lambda.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: ecs-draining
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+                - autoscaling:CompleteLifecycleAction
+                - ecs:DescribeContainerInstances
+                - ec2:DescribeInstances
+              Resource: '*'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+ 
+  LifecycleLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LifecycleLambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt TaskStateChangeRule.Arn
+ 
+  LifecycleLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub /aws/lambda/${LifecycleLambda}
+      RetentionInDays: 30
+ 
+  TaskStateChangeRule:
+    Type: "AWS::Events::Rule"
+    Properties: 
+      Description: !Sub Task state change in cluster ${ECSCluster}
+      Name: !Sub rule-for-${ECSCluster}-state-change
+      EventPattern:
+        source: 
+          - aws.ecs
+        detail-type: 
+          - ECS Task State Change
+        detail: 
+          clusterArn:
+            - !GetAtt ECSCluster.Arn
+          desiredStatus:
+            - STOPPED
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt LifecycleLambda.Arn
+          Id: lambdaTarget
+ 
+  AutoScalingNotificationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [autoscaling.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AutoScalingNotificationAccessRole
+ 
+# ----------------------------------------------------------------------------------------
+# ---------------------------------OUTPUTS------------------------------------------------
+# ----------------------------------------------------------------------------------------
+Outputs:
+  ServiceName:
+    Description: ECS Service Name
+    Value: !GetAtt Service.Name
