@@ -14,7 +14,7 @@ Parameters:
   AMI:
     Type: AWS::EC2::Image::Id
     Description: AMI to launch instances from
-    Default: ami-0a6720df6a8239525
+    Default: ami-0f85d8192f90863dc
   InstanceCount:
     Type: Number
     Description: Instances count
@@ -54,7 +54,7 @@ Parameters:
   ClusterName:
     Type: String
     Description: ECS cluster name
-    Default: relay42-cluster
+    Default: relay42-cluster-2
   Title:
     Type: String
     Description: Global title for all resources
@@ -457,7 +457,7 @@ Resources:
           "Statement": [{
             "Action": "sts:AssumeRole",
             "Effect": "Allow",
-            "Principal": { "Service": "ecs-tasks.amazonaws.com" }
+            "Principal": { "Service": [ "ecs-tasks.amazonaws.com", "ecs.amazonaws.com" ] }
           }]
         }
  
@@ -502,7 +502,8 @@ Resources:
           - Effect: Allow
             Action: ['ecs:CreateCluster', 'ecs:DeregisterContainerInstance', 'ecs:DiscoverPollEndpoint',
               'ecs:Poll', 'ecs:RegisterContainerInstance', 'ecs:StartTelemetrySession',
-              'ecs:Submit*', 'logs:CreateLogStream', 'logs:PutLogEvents']
+              'ecs:Submit*', 'logs:CreateLogStream', 'logs:PutLogEvents', "ecr:BatchCheckLayerAvailability",
+              'ecr:BatchGetImage', 'ecr:GetDownloadUrlForLayer', 'ecr:GetAuthorizationToken']
             Resource: '*'
  
   # Load Balancer
