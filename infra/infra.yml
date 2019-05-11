@@ -54,7 +54,7 @@ Parameters:
   ClusterName:
     Type: String
     Description: ECS cluster name
-    Default: relay42-cluster-2
+    Default: relay42-cluster
   Title:
     Type: String
     Description: Global title for all resources
@@ -524,7 +524,7 @@ Resources:
     DependsOn: LoadBalancer
     Properties:
       VpcId: !Ref VPC
-      Port: 8800
+      Port: 8080
       Protocol: HTTP
       Matcher: 
         HttpCode: 200-299
