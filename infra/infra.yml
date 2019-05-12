@@ -4,6 +4,10 @@ Description: Example infra setup for Relay42
 #--------------------------------PARAMETERS----------------------------------------------
 #----------------------------------------------------------------------------------------
 Parameters:
+  Title:
+    Type: String
+    Description: Global title for all resources
+    Default: relay42
   InstanceType:
     Type: String
     Default: t2.micro
@@ -51,14 +55,14 @@ Parameters:
     Type: String
     Description: Overall IP range for VPC
     Default: 10.0.0.0/16
-  ClusterName:
+  AccoundId:
     Type: String
-    Description: ECS cluster name
-    Default: relay42-cluster
-  Title:
+    Description: AWS account ID
+    Default: dummy
+  ImageVersion:
     Type: String
-    Description: Global title for all resources
-    Default: Relay42
+    Description: Version of the image to be deployed
+    Default: latest
 
 Metadata: 
   AWS::CloudFormation::Interface: 
@@ -349,17 +353,17 @@ Resources:
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: !Ref ClusterName
+      ClusterName: !Sub ${Title}-cluster
   # Task Definitions
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: relay42
+      Family: !Ref Title
       TaskRoleArn: !GetAtt TaskRole.Arn
       ContainerDefinitions:
-        - Name: relay42_app
+        - Name: !Sub ${Title}_app
           Essential: true
-          Image: 821550613207.dkr.ecr.eu-west-1.amazonaws.com/relay42:1.0.0
+          Image: !Sub ${AccountId}dkr.ecr.eu-west-1.amazonaws.com/${Title}:${ImageVersion}
           MemoryReservation: 32
           PortMappings:
             - ContainerPort: 8080
@@ -378,7 +382,7 @@ Resources:
         MinimumHealthyPercent: 100
       DesiredCount: !Ref TaskCount
       LoadBalancers: 
-        - ContainerName: relay42_app
+        - ContainerName: !Sub ${Title}_app
           ContainerPort: 8080
           TargetGroupArn: !Ref TargetGroup
 
@@ -400,7 +404,7 @@ Resources:
           DefaultResult: CONTINUE
       Tags:
         - Key: Name
-          Value: relay42-cluster-node
+          Value: !Sub ${Title}-cluster-node
           PropagateAtLaunch: true
         - Key: ECSClusterName
           Value: !Ref ECSCluster
@@ -538,7 +542,7 @@ Resources:
           Value: 10
       Tags: 
         - Key: Name
-          Value: ecs-draining-example      
+          Value: !Sub ${Title}-TargetGroup
  
   # Listeners
   ALBListener8080:

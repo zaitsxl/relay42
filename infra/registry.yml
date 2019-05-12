@@ -1,0 +1,47 @@
+Description: Deploy ECR registry
+
+#----------------------------------------------------------
+#---------------------PARAMETERS---------------------------
+#----------------------------------------------------------
+Parameters:
+  Title:
+    Type: String
+    Description: Global title for all resources
+    Default: relay42
+
+  AccountArn:
+    Type: String
+    Description: Account ARN to grant push-pull permissions
+    Default: dummy
+
+
+
+#----------------------------------------------------------
+#---------------------RESOURCES----------------------------
+#----------------------------------------------------------
+Resources:
+  ECRRegistry:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref Title
+      RepositoryPolicyText: {
+        "Version": "2008-10-17",
+        "Statement": [
+          {
+            "Sid": "AllowPushPull",
+            "Effect": "Allow",
+            "Principal": {
+              "AWS": !Ref AccountArn
+            },
+            "Action": [
+              "ecr:GetDownloadUrlForLayer",
+              "ecr:BatchGetImage",
+              "ecr:BatchCheckLayerAvailability",
+              "ecr:PutImage",
+              "ecr:InitiateLayerUpload",
+              "ecr:UploadLayerPart",
+              "ecr:CompleteLayerUpload"
+            ]
+          }
+        ]
+      }
