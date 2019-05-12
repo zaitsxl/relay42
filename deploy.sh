@@ -28,12 +28,12 @@ if [ $? -ne "0" ];
 	   echo "Logged in into account $ACCOUNTID"
 fi
 
-export ACCOUNTID
+export ACCOUNTID=$ACCOUNTID
 export USERARN=`echo $LOGIN | jq .Arn | tr -d "\""`
 
 echo "Deploying registry..."
 
-aws cloudformation deploy --template-file ./infra/registry.yml --stack-name $1 --parameters ParameterKey=Title,ParameterValue=$1 ParameterKey=AccountArn,ParameterValue=$USERARN --capabilities CAPABILITY_IAM
+aws cloudformation deploy --template-file ./infra/registry.yml --stack-name $1 --capabilities CAPABILITY_IAM --parameter-overrides Title=$1 AccountArn=$USERARN
 
 echo "Building and pushing image..."
 $(aws ecr get-login --no-include-email)
