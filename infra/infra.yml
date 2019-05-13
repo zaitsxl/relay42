@@ -55,7 +55,7 @@ Parameters:
     Type: String
     Description: Overall IP range for VPC
     Default: 10.0.0.0/16
-  AccoundId:
+  AccountId:
     Type: String
     Description: AWS account ID
     Default: dummy
@@ -363,7 +363,7 @@ Resources:
       ContainerDefinitions:
         - Name: !Sub ${Title}_app
           Essential: true
-          Image: !Sub ${AccountId}dkr.ecr.eu-west-1.amazonaws.com/${Title}:${ImageVersion}
+          Image: !Sub ${AccountId}.dkr.ecr.eu-west-1.amazonaws.com/${Title}:${ImageVersion}
           MemoryReservation: 32
           PortMappings:
             - ContainerPort: 8080
@@ -533,7 +533,7 @@ Resources:
       Matcher: 
         HttpCode: 200-299
       HealthCheckIntervalSeconds: 5
-      HealthCheckPath: /
+      HealthCheckPath: /hello
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 2
       HealthyThresholdCount: 2
