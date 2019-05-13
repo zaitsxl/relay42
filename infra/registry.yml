@@ -9,12 +9,6 @@ Parameters:
     Description: Global title for all resources
     Default: relay42
 
-  AccountArn:
-    Type: String
-    Description: Account ARN to grant push-pull permissions
-    Default: dummy
-
-
 #----------------------------------------------------------
 #---------------------RESOURCES----------------------------
 #----------------------------------------------------------
@@ -29,9 +23,7 @@ Resources:
           {
             "Sid": "AllowPushPull",
             "Effect": "Allow",
-            "Principal": {
-              "AWS": !Ref AccountArn
-            },
+            "Principal": "*",
             "Action": [
               "ecr:GetDownloadUrlForLayer",
               "ecr:BatchGetImage",

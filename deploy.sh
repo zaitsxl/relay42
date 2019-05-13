@@ -33,7 +33,7 @@ export USERARN=`echo $LOGIN | jq .Arn | tr -d "\""`
 
 echo "Deploying registry..."
 
-aws cloudformation deploy --template-file ./infra/registry.yml --stack-name $1 --capabilities CAPABILITY_IAM --parameter-overrides Title=$1 AccountArn=$USERARN
+aws cloudformation deploy --template-file ./infra/registry.yml --stack-name $1-registry --capabilities CAPABILITY_IAM --parameter-overrides Title=$1
 
 echo "Building and pushing image..."
 $(aws ecr get-login --no-include-email)
@@ -43,4 +43,4 @@ docker push $ACCOUNTID.dkr.ecr.eu-west-1.amazonaws.com/$1:$2
 docker push $ACCOUNTID.dkr.ecr.eu-west-1.amazonaws.com/$1:latest
 
 echo "Updating stack...."
-aws cloudformation update-stack --stack-name $1 --template-body ./infra/infra.yml --parameters ParameterKey=AccountId,ParameterValue=$ACCOUNTID ParameterKey=Title,ParameterValue=$1 ParameterKey=ImageVersion,ParameterValue=$2 --capabilities CAPABILITY_IAM 
+aws cloudformation deploy --stack-name $1-infra --template-file ./infra/infra.yml --parameter-overrides AccountId=$ACCOUNTID Title=$1 ImageVersion=$2 --capabilities CAPABILITY_IAM
